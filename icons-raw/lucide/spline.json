@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["ericfennis", "jguddas"],
+  "tags": ["path", "pen", "tool", "shape", "curve", "draw"],
+  "categories": ["design"]
+}

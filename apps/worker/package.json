@@ -1,0 +1,28 @@
+{
+  "name": "@svg-api/worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "build": "wrangler build",
+    "deploy": "wrangler deploy --env production",
+    "deploy:preview": "wrangler deploy --env preview",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier -w \"src/**/*.{ts,tsx,json,md}\""
+  },
+  "dependencies": {
+    "@svg-api/shared": "workspace:*",
+    "hono": "^4.6.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250115.0",
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.95.0"
+  }
+}

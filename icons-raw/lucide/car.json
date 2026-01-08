@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["ahtohbi4", "ericfennis", "Andreto"],
+  "tags": ["vehicle", "drive", "trip", "journey"],
+  "categories": ["transportation"]
+}

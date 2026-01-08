@@ -1,0 +1,28 @@
+node_modules
+.pnpm-store
+.DS_Store
+
+# build outputs
+**/dist
+**/.next
+**/out
+
+# local env
+.env
+.env.local
+.env.*.local
+.dev.vars
+
+# turbo
+.turbo
+
+# wrangler
+.wrangler
+
+# editor
+.vscode
+.idea
+
+# secrets
+*.pem
+*.key

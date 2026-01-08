@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["mittalyashu", "danielbayley"],
+  "tags": ["window", "webpage", "block", "section"],
+  "categories": ["layout"]
+}

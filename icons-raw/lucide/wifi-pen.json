@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["karsa-mistmere", "jguddas", "danielbayley", "luisdlopera"],
+  "tags": ["edit", "wifi", "pen", "change", "network"],
+  "categories": ["connectivity", "devices"]
+}

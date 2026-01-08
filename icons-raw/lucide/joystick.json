@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["mittalyashu", "karsa-mistmere", "ericfennis"],
+  "tags": ["game", "console", "control stick"],
+  "categories": ["gaming", "devices"]
+}

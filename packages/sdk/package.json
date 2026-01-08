@@ -1,0 +1,68 @@
+{
+  "name": "@svg-api/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript/JavaScript SDK for SVG API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier -w \"src/**/*.{ts,json,md}\""
+  },
+  "keywords": [
+    "svg",
+    "icons",
+    "api",
+    "sdk",
+    "lucide",
+    "tabler",
+    "heroicons",
+    "bootstrap-icons",
+    "remix-icon",
+    "ionicons",
+    "material-design-icons"
+  ],
+  "author": "SVG API Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/svg-api/svg-api.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/svg-api/svg-api/issues"
+  },
+  "homepage": "https://svg-api.org",
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley"],
+  "tags": ["index", "backup", "box", "storage", "records", "junk"],
+  "categories": ["files", "mail"]
+}

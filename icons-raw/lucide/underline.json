@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["colebemis", "ericfennis", "csandman", "johnletey"],
+  "tags": ["text", "format"],
+  "categories": ["text"]
+}

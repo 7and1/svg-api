@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["gurtt", "karsa-mistmere"],
+  "tags": ["pulpit", "podium", "stand"],
+  "categories": ["communication", "multimedia"]
+}

@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --ink: #0b1020;
+  --sand: #f7f2e9;
+  --mist: #e7f6ff;
+}
+
+.dark {
+  color-scheme: dark;
+  --ink: #f7f2e9;
+  --sand: #0f1419;
+  --mist: #1a1a2e;
+}
+
+body {
+  @apply bg-sand text-ink font-body antialiased;
+}
+
+.dark body {
+  @apply bg-hero-gradient-dark;
+}
+
+main {
+  @apply min-h-screen;
+}
+
+::selection {
+  background: rgba(20, 184, 166, 0.3);
+}
+
+.dark ::selection {
+  background: rgba(20, 184, 166, 0.5);
+}
+
+/* Scalar API Reference Styles */
+.scalar-wrapper {
+  height: 600px;
+  overflow: hidden;
+}
+
+.scalar-documentation-wrapper {
+  height: calc(100vh - 200px);
+  min-height: 600px;
+}
+
+.scalar-documentation {
+  height: 100%;
+}
+
+/* Override Scalar's dark mode to match our theme */
+.scalar-api-reference {
+  --scalar-theme-name: "default";
+}

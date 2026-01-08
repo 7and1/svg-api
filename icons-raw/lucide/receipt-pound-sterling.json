@@ -1,0 +1,16 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley"],
+  "tags": [
+    "bill",
+    "voucher",
+    "slip",
+    "check",
+    "counterfoil",
+    "british",
+    "currency",
+    "gbp",
+    "£"
+  ],
+  "categories": ["finance", "travel"]
+}

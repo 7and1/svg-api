@@ -1,0 +1,28 @@
+{
+  "name": "@svg-api/icons",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "upload": "tsx scripts/upload.ts",
+    "lint": "eslint scripts src",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier -w \"{scripts,src}/**/*.{ts,json,md}\""
+  },
+  "dependencies": {
+    "@svg-api/shared": "workspace:*",
+    "@aws-sdk/client-s3": "^3.758.0",
+    "fast-glob": "^3.3.2",
+    "mime-types": "^2.1.35",
+    "p-limit": "^6.1.0",
+    "svgo": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

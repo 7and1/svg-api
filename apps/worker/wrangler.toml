@@ -1,0 +1,133 @@
+name = "svg-api-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker limits
+[limits]
+cpu_ms = 50
+
+# Observability
+[observability]
+enabled = true
+
+# ============================================================================
+# Development environment (default)
+# ============================================================================
+[vars]
+ENVIRONMENT = "development"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "100"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+# LOCAL_INDEX_JSON = ""
+# LOCAL_ICONS_BASE_URL = "http://localhost:4173/icons"
+
+# KV namespace for icon index
+[[kv_namespaces]]
+binding = "SVG_INDEX"
+id = "bdb8e366bd744333884e3426bd1d380b"
+preview_id = "46cadd3dd4c34f1f82e99fbaa982efba"
+
+[[r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons-dev"
+
+# Analytics Engine for metrics collection
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+# D1 Database for aggregated metrics
+[[d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-dev-2025"
+database_id = "05012005-4a4c-4fc8-8941-92796e6e1534"
+
+# Cron trigger for hourly aggregation
+[triggers]
+crons = ["0 * * * *"]  # Run every hour at minute 0
+
+# ============================================================================
+# Preview environment (staging)
+# ============================================================================
+[env.preview]
+name = "svg-api-worker-preview"
+
+[env.preview.vars]
+ENVIRONMENT = "preview"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "50"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+ALLOWED_ORIGINS = "*"
+
+[[env.preview.kv_namespaces]]
+binding = "SVG_INDEX"
+id = "46cadd3dd4c34f1f82e99fbaa982efba"
+preview_id = "46cadd3dd4c34f1f82e99fbaa982efba"
+
+[[env.preview.r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons-preview"
+
+# Preview Analytics Engine
+[[env.preview.analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+# Preview D1 Database
+[[env.preview.d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-preview-2025"
+database_id = "e86ec51c-3cb0-4836-b8bf-09682ef5d62a"
+
+# Preview cron trigger
+[env.preview.triggers]
+crons = ["0 * * * *"]
+
+# ============================================================================
+# Production environment
+# ============================================================================
+[env.production]
+name = "svg-api-worker"
+workers_dev = false
+
+[env.production.vars]
+ENVIRONMENT = "production"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "1000"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+# ALLOWED_ORIGINS configured via secrets for security
+
+[[env.production.kv_namespaces]]
+binding = "SVG_INDEX"
+id = "93d91a77bd9349dcbebd4c12ce7ea572"
+
+[[env.production.r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons"
+
+# Production Analytics Engine
+[[env.production.analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+# Production D1 Database
+[[env.production.d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-prod-2025"
+database_id = "f1f78cd6-81c6-4fff-b0aa-828adb1f36e0"
+
+# Production cron trigger
+[env.production.triggers]
+crons = ["0 * * * *"]
+
+# Production custom domain routes
+# [[env.production.routes]]
+# pattern = "svg-api.yourdomain.com/*"
+# zone_name = "yourdomain.com"
+
+# ============================================================================
+# Secrets (configure via `wrangler secret put`)
+# - ALLOWED_ORIGINS: Comma-separated allowed origins for CORS
+# - API_KEY: Optional API key for authenticated endpoints
+# ============================================================================

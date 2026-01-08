@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["ericfennis", "csandman", "mittalyashu"],
+  "tags": ["photo", "book"],
+  "categories": ["photography", "multimedia"]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley"],
+  "tags": [
+    "pets",
+    "vets",
+    "veterinarian",
+    "domesticated",
+    "cat",
+    "dog",
+    "bear"
+  ],
+  "categories": ["animals"]
+}

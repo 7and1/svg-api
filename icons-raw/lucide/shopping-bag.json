@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["colebemis", "csandman", "ericfennis"],
+  "tags": ["ecommerce", "cart", "purchase", "store"],
+  "categories": ["shopping"]
+}

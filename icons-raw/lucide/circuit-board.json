@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley", "jguddas"],
+  "tags": ["computing", "electricity", "electronics"],
+  "categories": ["science", "development"]
+}

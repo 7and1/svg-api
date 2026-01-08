@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["aelfric", "ericfennis", "csandman"],
+  "tags": ["undo", "rerun", "history"],
+  "categories": ["text", "arrows"]
+}

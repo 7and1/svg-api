@@ -1,0 +1,9 @@
+{
+  "$schema": "../icon.schema.json",
+  "deprecated": true,
+  "deprecationReason": "icon.brand",
+  "toBeRemovedInVersion": "v1.0",
+  "contributors": ["ahtohbi4"],
+  "tags": ["design", "social"],
+  "categories": ["brands", "social", "design"]
+}

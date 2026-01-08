@@ -1,0 +1,11 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": [
+    "mittalyashu",
+    "ericfennis",
+    "karsa-mistmere",
+    "danielbayley"
+  ],
+  "tags": ["lights"],
+  "categories": ["photography"]
+}

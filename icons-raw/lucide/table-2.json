@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["abejenaru", "karsa-mistmere", "ericfennis"],
+  "tags": ["spreadsheet", "grid"],
+  "categories": ["text", "files"]
+}

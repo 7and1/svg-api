@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["lscheibel", "danielbayley", "karsa-mistmere"],
+  "tags": ["undo", "rerun", "history"],
+  "categories": ["text", "arrows"]
+}

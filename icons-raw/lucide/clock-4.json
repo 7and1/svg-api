@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["wojtekmaj"],
+  "tags": ["time", "watch", "alarm"],
+  "categories": ["time"]
+}

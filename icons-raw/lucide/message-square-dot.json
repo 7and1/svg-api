@@ -1,0 +1,15 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley", "karsa-mistmere"],
+  "tags": [
+    "unread",
+    "unresolved",
+    "comment",
+    "chat",
+    "conversation",
+    "dialog",
+    "feedback",
+    "speech bubble"
+  ],
+  "categories": ["social", "notifications"]
+}

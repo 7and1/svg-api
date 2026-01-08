@@ -1,0 +1,11 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": [
+    "mittalyashu",
+    "danielbayley",
+    "karsa-mistmere",
+    "jamiemlaw"
+  ],
+  "tags": ["unlimited", "forever", "loop", "math"],
+  "categories": ["multimedia"]
+}

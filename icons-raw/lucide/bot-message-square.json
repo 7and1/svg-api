@@ -1,0 +1,6 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["danielbayley", "karsa-mistmere"],
+  "tags": ["robot", "ai", "chat", "assistant"],
+  "categories": ["development", "social"]
+}

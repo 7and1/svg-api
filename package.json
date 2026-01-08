@@ -1,0 +1,30 @@
+{
+  "name": "svg-api",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "turbo run format",
+    "typecheck": "turbo run typecheck",
+    "ci": "pnpm lint && pnpm test && pnpm build",
+    "deploy:worker": "pnpm --filter @svg-api/worker exec wrangler deploy --env production",
+    "deploy:worker:preview": "pnpm --filter @svg-api/worker exec wrangler deploy --env preview",
+    "deploy:web": "pnpm --filter @svg-api/web build && pnpm exec wrangler pages deploy apps/web/out --project-name svg-api",
+    "deploy:icons": "pnpm --filter @svg-api/icons build && pnpm --filter @svg-api/icons upload",
+    "predeploy": "pnpm ci"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "eslint": "^9.19.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.4",
+    "typescript": "^5.7.3"
+  }
+}

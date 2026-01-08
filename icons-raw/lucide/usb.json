@@ -1,0 +1,13 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["karsa-mistmere", "jguddas"],
+  "tags": [
+    "universal",
+    "serial",
+    "bus",
+    "controller",
+    "connector",
+    "interface"
+  ],
+  "categories": ["devices", "multimedia", "home"]
+}

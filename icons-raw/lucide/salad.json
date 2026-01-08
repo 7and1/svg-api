@@ -1,0 +1,16 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["kemie"],
+  "tags": [
+    "food",
+    "vegetarian",
+    "dish",
+    "restaurant",
+    "course",
+    "meal",
+    "side",
+    "vegetables",
+    "health"
+  ],
+  "categories": ["food-beverage", "emoji"]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["Kaladii", "ericfennis", "jguddas"],
+  "tags": [
+    "power",
+    "electricity",
+    "energy",
+    "accumulator",
+    "charge",
+    "exclamation mark"
+  ],
+  "categories": ["connectivity", "devices"]
+}

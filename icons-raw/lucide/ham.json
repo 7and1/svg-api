@@ -1,0 +1,16 @@
+{
+  "$schema": "../icon.schema.json",
+  "contributors": ["karsa-mistmere"],
+  "tags": [
+    "food",
+    "pork",
+    "pig",
+    "meat",
+    "bone",
+    "hock",
+    "knuckle",
+    "gammon",
+    "cured"
+  ],
+  "categories": ["food-beverage"]
+}
