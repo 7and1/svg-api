@@ -3,6 +3,7 @@
  *
  * Captures request metrics and sends them to Analytics Engine.
  * Runs asynchronously to avoid impacting request performance.
+ * Records ALL requests including rate-limited ones for complete visibility.
  */
 
 import type { Context, Next } from "hono";
@@ -12,7 +13,7 @@ import { getAnalyticsService } from "../services/analytics";
 // Track cold starts
 let isColdStart = true;
 
-// Filter patterns for ignoring certain requests
+// Filter patterns for ignoring certain requests (only health checks)
 const IGNORE_PATTERNS = [
   "/health",
   "/health/live",
@@ -20,29 +21,13 @@ const IGNORE_PATTERNS = [
   "/favicon.ico",
 ];
 
-// User-Agent patterns to filter out (bots, monitoring)
-const BOT_PATTERNS = [
-  /bot/i,
-  /crawler/i,
-  /spider/i,
-  /curl/i,
-  /wget/i,
-  /monitoring/i,
-  /uptimerobot/i,
-  /pingdom/i,
-];
-
 /**
  * Check if a request should be tracked
+ * Note: We now track ALL requests including rate-limited ones for complete visibility
  */
-const shouldTrack = (path: string, userAgent?: string): boolean => {
-  // Skip health checks
+const shouldTrack = (path: string): boolean => {
+  // Skip health checks only
   if (IGNORE_PATTERNS.some((pattern) => path.startsWith(pattern))) {
-    return false;
-  }
-
-  // Skip bots
-  if (userAgent && BOT_PATTERNS.some((pattern) => pattern.test(userAgent))) {
     return false;
   }
 
@@ -51,6 +36,8 @@ const shouldTrack = (path: string, userAgent?: string): boolean => {
 
 /**
  * Analytics middleware for tracking requests
+ * Positioned after CORS but before rate limiting to capture all requests
+ * including those that get rate limited
  */
 export const analyticsMiddleware = () => {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
@@ -59,28 +46,36 @@ export const analyticsMiddleware = () => {
     const userAgent = c.req.header("User-Agent");
     const apiVersion = c.req.header("API-Version") || "1.0";
 
-    // Store cache status for analytics
+    // Store cache status and rate limit info for analytics
     let cacheStatus: "HIT" | "MISS" | "NONE" = "NONE";
+    let rateLimitTier: string | undefined;
+    let rateLimitRemaining: number | undefined;
 
-    // Intercept response to capture cache status
-    const originalSet = c.res.headers.set.bind(c.res.headers);
-    c.res.headers.set = (name: string, value: string) => {
-      if (name.toLowerCase() === "x-cache") {
-        if (value === "HIT" || value === "MISS") {
-          cacheStatus = value;
-        }
-      }
-      return originalSet(name, value);
-    };
+    // Track if response was already sent (for rate limit detection)
+    let responseSent = false;
 
     try {
       await next();
 
       // Track after response is sent
       const duration = Date.now() - startTime;
-      const status = c.res.status;
+      const status = c.res?.status || 0;
+      responseSent = true;
 
-      if (shouldTrack(path, userAgent)) {
+      // Capture rate limit info from response headers if available
+      rateLimitTier = c.res?.headers.get("X-RateLimit-Tier") || undefined;
+      const remainingHeader = c.res?.headers.get("X-RateLimit-Remaining");
+      if (remainingHeader) {
+        rateLimitRemaining = parseInt(remainingHeader, 10);
+      }
+
+      // Capture cache status from headers
+      const cacheHeader = c.res?.headers.get("X-Cache");
+      if (cacheHeader === "HIT" || cacheHeader === "MISS") {
+        cacheStatus = cacheHeader;
+      }
+
+      if (shouldTrack(path)) {
         const analytics = getAnalyticsService(c.env);
 
         if (analytics) {
@@ -97,6 +92,8 @@ export const analyticsMiddleware = () => {
                   source: extractSourceFromPath(path),
                   userAgent,
                   apiVersion,
+                  rateLimitTier,
+                  rateLimitRemaining,
                 });
               } catch (err) {
                 // Fail silently - analytics shouldn't break the app
@@ -121,22 +118,39 @@ export const analyticsMiddleware = () => {
         }
       }
     } catch (err) {
-      // Track errors
-      if (shouldTrack(path, userAgent)) {
+      // Track errors - including those from rate limiting or other middleware
+      if (shouldTrack(path)) {
         const analytics = getAnalyticsService(c.env);
+        const duration = Date.now() - startTime;
 
         if (analytics) {
           c.executionCtx.waitUntil(
             (async () => {
               try {
-                analytics.recordError({
-                  endpoint: path,
-                  errorType: err instanceof Error ? err.name : "UnknownError",
-                  errorMessage:
-                    err instanceof Error ? err.message : String(err),
-                  userAgent,
-                  apiVersion,
-                });
+                // Record as error or as request depending on error type
+                if (err instanceof Error && err.name === "RateLimitError") {
+                  analytics.recordRequest({
+                    endpoint: path,
+                    method: c.req.method,
+                    status: 429,
+                    duration_ms: duration,
+                    cache_hit: false,
+                    source: extractSourceFromPath(path),
+                    userAgent,
+                    apiVersion,
+                    rateLimitTier: rateLimitTier || "unknown",
+                    rateLimitRemaining: 0,
+                  });
+                } else {
+                  analytics.recordError({
+                    endpoint: path,
+                    errorType: err instanceof Error ? err.name : "UnknownError",
+                    errorMessage:
+                      err instanceof Error ? err.message : String(err),
+                    userAgent,
+                    apiVersion,
+                  });
+                }
               } catch {
                 // Fail silently
               }

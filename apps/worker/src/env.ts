@@ -5,6 +5,8 @@ export interface Env {
   ANALYTICS?: AnalyticsEngineDataset;
   // D1 Database for aggregated metrics
   METRICS_DB?: D1Database;
+  // Rate limiter Durable Object
+  RATE_LIMITER: DurableObjectNamespace;
   // Sentry DSN for error tracking
   SENTRY_DSN?: string;
   ENVIRONMENT: string;
@@ -18,6 +20,14 @@ export interface Env {
   RATE_LIMIT_RPS?: string;
   CACHE_TTL_ICONS?: string;
   CACHE_TTL_SEARCH?: string;
-  // Optional API key for protected endpoints
+  // API key for protected endpoints
   API_KEY?: string;
+  // Internal/master API key
+  INTERNAL_API_KEY?: string;
+  // Secret for request signature verification
+  API_SECRET?: string;
+  WEBHOOK_SECRET?: string;
+  // External logging endpoint
+  LOG_ENDPOINT?: string;
+  LOG_API_KEY?: string;
 }

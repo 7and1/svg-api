@@ -29,6 +29,7 @@ const navigation = [
     items: [
       { href: "/docs/examples", label: "Code Examples" },
       { href: "/docs/sources", label: "Icon Sources" },
+      { href: "/docs/troubleshooting", label: "Troubleshooting" },
     ],
   },
 ];

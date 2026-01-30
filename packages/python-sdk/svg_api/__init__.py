@@ -1,69 +1,77 @@
 """
 SVG API Python SDK
 
-A production-ready Python client for the SVG API.
-Access 50,000+ icons from 20+ open-source icon libraries.
+A production-ready Python SDK for the SVG API.
+Provides both synchronous and asynchronous clients.
 
 Example:
-    >>> from svg_api import SvgApi
-    >>> client = SvgApi(api_key="sk_live_xxx")  # optional
-    >>> icon = client.get_icon("home", source="heroicons", size=32)
-    >>> print(icon.svg)
+    # Synchronous usage
+    from svg_api import SvgApi
+    
+    client = SvgApi()
+    icon = client.get_icon("home", source="heroicons")
+    print(icon.svg)
+    
+    # Asynchronous usage
+    from svg_api import AsyncSvgApi
+    
+    async with AsyncSvgApi() as client:
+        icon = await client.get_icon("home", source="heroicons")
+        print(icon.svg)
 """
 
-from svg_api.client import SvgApi, AsyncSvgApi
-from svg_api.errors import (
-    SvgApiError,
-    ApiError,
-    AuthenticationError,
-    RateLimitError,
-    InvalidRequestError,
-    NotFoundError,
-    ServiceUnavailableError,
-)
+from svg_api.client import SvgApi, SvgApiConfig
+from svg_api.async_client import AsyncSvgApi, AsyncSvgApiConfig
 from svg_api.types import (
     Icon,
+    IconLicense,
     Source,
     Category,
     SearchResult,
-    IconOptions,
-    SearchOptions,
-    BatchIconRequest,
-    RandomIconOptions,
-    License,
-    ApiResponse,
-    SearchResponse,
+    BatchIconResult,
     BatchResponse,
+    SearchResponse,
     SourcesResponse,
     CategoriesResponse,
+    IconResponse,
+)
+from svg_api.errors import (
+    SvgApiError,
+    NotFoundError,
+    InvalidRequestError,
+    RateLimitError,
+    ServerError,
+    NetworkError,
+    TimeoutError,
+    AuthenticationError,
 )
 
 __version__ = "1.0.0"
 __all__ = [
     # Clients
     "SvgApi",
+    "SvgApiConfig",
     "AsyncSvgApi",
-    # Exceptions
-    "SvgApiError",
-    "ApiError",
-    "AuthenticationError",
-    "RateLimitError",
-    "InvalidRequestError",
-    "NotFoundError",
-    "ServiceUnavailableError",
+    "AsyncSvgApiConfig",
     # Types
     "Icon",
+    "IconLicense",
     "Source",
     "Category",
     "SearchResult",
-    "IconOptions",
-    "SearchOptions",
-    "BatchIconRequest",
-    "RandomIconOptions",
-    "License",
-    "ApiResponse",
-    "SearchResponse",
+    "BatchIconResult",
     "BatchResponse",
+    "SearchResponse",
     "SourcesResponse",
     "CategoriesResponse",
+    "IconResponse",
+    # Errors
+    "SvgApiError",
+    "NotFoundError",
+    "InvalidRequestError",
+    "RateLimitError",
+    "ServerError",
+    "NetworkError",
+    "TimeoutError",
+    "AuthenticationError",
 ]

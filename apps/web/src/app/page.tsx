@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "SVG API - Free Icon API for Developers | 22k+ Icons",
@@ -51,14 +52,14 @@ export const metadata: Metadata = {
 };
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-2xl border border-black/10 bg-white/70 px-5 py-4 shadow-glow">
+  <div className="rounded-2xl border border-black/10 bg-white/70 px-5 py-4 shadow-glow transition hover:shadow-glow-dark">
     <div className="text-2xl font-semibold text-ink">{value}</div>
     <div className="text-xs uppercase tracking-[0.2em] text-slate">{label}</div>
   </div>
 );
 
 const Feature = ({ title, copy }: { title: string; copy: string }) => (
-  <div className="rounded-3xl border border-black/10 bg-white/80 p-6 shadow-sm">
+  <div className="rounded-3xl border border-black/10 bg-white/80 p-6 shadow-sm transition hover:shadow-md">
     <h3 className="font-display text-lg font-semibold">{title}</h3>
     <p className="mt-3 text-sm text-slate">{copy}</p>
   </div>
@@ -160,20 +161,20 @@ export default function HomePage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/playground"
-                className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-sand hover:bg-black/80 transition"
+                className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-sand transition hover:bg-black/80 hover:scale-105 active:scale-95"
               >
                 Open Playground
               </Link>
               <Link
                 href="/docs"
-                className="rounded-full border border-ink/20 px-6 py-3 text-sm font-semibold text-ink hover:border-ink/50 transition"
+                className="rounded-full border border-ink/20 px-6 py-3 text-sm font-semibold text-ink transition hover:border-ink/50 hover:bg-white/50"
               >
                 Read Documentation
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <Stat label="Icons" value="22k+" />
-              <Stat label="p95 Latency" value="&lt; 50ms" />
+              <Stat label="p95 Latency" value="< 50ms" />
               <Stat label="Cache Hit" value="95%" />
             </div>
           </div>
@@ -186,13 +187,13 @@ export default function HomePage() {
               {`curl "https://svg-api.org/v1/icons/home?source=lucide&color=%23f59e0b&size=32"\n\n# Returns raw SVG\n# <svg width="32" height="32" ...>`}
             </pre>
             <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs text-slate">
-              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4">
+              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4 transition hover:border-teal/50">
                 No SDKs
               </div>
-              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4">
+              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4 transition hover:border-teal/50">
                 Edge cached
               </div>
-              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4">
+              <div className="rounded-2xl border border-black/10 bg-white/70 px-3 py-4 transition hover:border-teal/50">
                 Open source
               </div>
             </div>
@@ -227,13 +228,13 @@ export default function HomePage() {
             <div className="flex gap-3">
               <Link
                 href="/docs"
-                className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold"
+                className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold transition hover:border-ink/40 hover:bg-white/50"
               >
                 Documentation
               </Link>
               <Link
                 href="/playground"
-                className="rounded-full bg-teal px-5 py-2 text-sm font-semibold text-white"
+                className="rounded-full bg-teal px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal/90 hover:scale-105 active:scale-95"
               >
                 Try API
               </Link>

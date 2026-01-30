@@ -1,20 +1,43 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
 import { ThemeProvider } from "../components/theme/ThemeProvider";
+import { ServiceWorkerRegistration } from "../components/pwa/ServiceWorkerRegistration";
 
+// Font optimization with display swap for Core Web Vitals
 const display = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
+  display: "swap",
+  preload: true,
+  weight: ["400", "500", "600", "700"],
 });
 const body = IBM_Plex_Sans({
   subsets: ["latin"],
   variable: "--font-body",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: true,
 });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  preload: false, // Mono font is less critical
+});
+
+// Separate viewport export for Next.js 15
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f2e9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1419" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: {
@@ -26,6 +49,20 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://svg-api.org"),
   alternates: {
     canonical: "/",
+  },
+  // PWA manifest
+  manifest: "/manifest.json",
+  // Apple touch icon
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   openGraph: {
     type: "website",
@@ -41,6 +78,25 @@ export const metadata: Metadata = {
     description:
       "22k+ SVG icons via a single URL. No dependencies, CDN-delivered.",
     site: "@svgapi",
+  },
+  // Additional SEO metadata
+  applicationName: "SVG API",
+  authors: [{ name: "SVG API Team", url: "https://svg-api.org" }],
+  creator: "SVG API Team",
+  publisher: "SVG API",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "your-google-site-verification",
   },
 };
 
@@ -126,6 +182,24 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Preconnect to API domains for faster requests */}
+        <link rel="preconnect" href="https://api.svg-api.org" />
+        <link rel="dns-prefetch" href="https://api.svg-api.org" />
+        <link rel="preconnect" href="https://svg-api.org" />
+        <link rel="dns-prefetch" href="https://svg-api.org" />
+        {/* Preload critical assets for LCP optimization */}
+        <link
+          rel="preload"
+          href="/icon-192x192.png"
+          as="image"
+          type="image/png"
+        />
+        {/* PWA support */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body className="min-h-screen bg-hero-gradient text-ink">
         <ThemeProvider
           attribute="class"
@@ -137,6 +211,7 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
         </ThemeProvider>
+        <ServiceWorkerRegistration />
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger

@@ -3,13 +3,16 @@
  *
  * A production-ready TypeScript/JavaScript SDK for the SVG API.
  * Provides full API coverage with retry logic, exponential backoff,
- * and support for both Node.js and browser environments.
+ * in-memory caching, and intelligent batching.
  *
  * @example
  * ```ts
  * import { SvgApi } from '@svg-api/sdk';
  *
- * const api = new SvgApi();
+ * const api = new SvgApi({
+ *   cache: { maxSize: 500, maxAge: 60000 },
+ *   batch: { autoBatch: true, maxWaitMs: 10 }
+ * });
  * const icon = await api.getIcon('home');
  * console.log(icon.svg);
  * ```
@@ -29,6 +32,8 @@ import type {
   GetRandomIconOptions,
   BatchOptions,
   BatchResponse,
+  BatchIconOptions,
+  BatchItemResult,
   RequestOptions,
   ErrorResponse,
 } from "./types";
@@ -43,12 +48,19 @@ import {
   sleep,
   isBrowser,
 } from "./utils";
+import { SvgApiCache, CacheConfig } from "./cache";
+import { IconBatcher, BatcherConfig, chunkArray } from "./batch";
+
+export interface EnhancedSvgApiConfig extends SvgApiConfig {
+  cache?: CacheConfig | boolean;
+  batch?: BatcherConfig | boolean;
+}
 
 /**
  * SVG API Client
  *
  * Main class for interacting with the SVG API. Supports all endpoints
- * with automatic retry logic and exponential backoff.
+ * with automatic retry logic, exponential backoff, caching, and batching.
  */
 export class SvgApi {
   private readonly baseUrl: string;
@@ -58,26 +70,13 @@ export class SvgApi {
   private readonly retryDelay: number;
   private readonly fetchImpl: typeof fetch;
   private readonly headers: Record<string, string>;
+  private readonly cache: SvgApiCache | null;
+  private readonly batcher: IconBatcher | null;
 
   /**
    * Creates a new SvgApi client instance
-   *
-   * @param config - SDK configuration options
-   *
-   * @example
-   * ```ts
-   * // Default configuration
-   * const api = new SvgApi();
-   *
-   * // Custom configuration
-   * const api = new SvgApi({
-   *   baseUrl: 'https://api.example.com',
-   *   timeout: 5000,
-   *   maxRetries: 5,
-   * });
-   * ```
    */
-  constructor(config: SvgApiConfig = {}) {
+  constructor(config: EnhancedSvgApiConfig = {}) {
     this.baseUrl = config.baseUrl ?? "https://svg-api.org";
     this.version = config.version ?? "v1";
     this.timeout = config.timeout ?? 10000;
@@ -89,23 +88,39 @@ export class SvgApi {
       "User-Agent": this.buildUserAgent(),
       ...config.headers,
     };
+
+    // Initialize cache
+    if (config.cache === false) {
+      this.cache = null;
+    } else if (config.cache === true || config.cache === undefined) {
+      this.cache = new SvgApiCache();
+    } else {
+      this.cache = new SvgApiCache(config.cache);
+    }
+
+    // Initialize batcher
+    if (config.batch === false) {
+      this.batcher = null;
+    } else {
+      const batchConfig = config.batch === true || config.batch === undefined
+        ? {}
+        : config.batch;
+      this.batcher = new IconBatcher(
+        (icons) => this.executeBatch(icons),
+        batchConfig
+      );
+    }
   }
 
-  /**
-   * Builds the User-Agent header for requests
-   */
   private buildUserAgent(): string {
     const version = process.env.npm_package_version ?? "0.1.0";
     const runtime = isBrowser ? "browser" : `node/${process.version}`;
     return `svg-api-sdk/${version} (${runtime})`;
   }
 
-  /**
-   * Builds the full URL for an API endpoint
-   */
   private buildUrl(
     path: string,
-    queryParams?: Record<string, string | number | boolean | undefined>,
+    queryParams?: Record<string, string | number | boolean | undefined>
   ): string {
     const basePath = path.startsWith("/") ? path : `/${path}`;
     const versionPath = this.version ? `/${this.version}${basePath}` : basePath;
@@ -113,17 +128,30 @@ export class SvgApi {
     return `${this.baseUrl}${versionPath}${queryString}`;
   }
 
-  /**
-   * Makes an HTTP request with retry logic
-   */
+  private getCacheKey(
+    endpoint: string,
+    params?: Record<string, string | number | boolean | undefined>
+  ): string {
+    return SvgApiCache.generateKey(endpoint, params);
+  }
+
   private async request<T>(
     url: string,
     options: RequestInit & { timeout?: number } = {},
     requestOptions?: RequestOptions,
+    cacheKey?: string
   ): Promise<T> {
+    // Check cache first
+    if (cacheKey && this.cache) {
+      const cached = this.cache.get<T>(cacheKey);
+      if (cached !== undefined) {
+        return cached;
+      }
+    }
+
     const mergedOptions = mergeRequestOptions(
       { headers: this.headers },
-      requestOptions,
+      requestOptions
     );
     const timeout = requestOptions?.timeout ?? this.timeout;
 
@@ -138,11 +166,15 @@ export class SvgApi {
             headers: mergedOptions.headers,
           },
           this.fetchImpl,
+          timeout
         );
 
-        // Handle non-JSON responses (like SVG)
         if (response.headers.get("content-type")?.includes("image/svg+xml")) {
-          return (await response.text()) as unknown as T;
+          const data = (await response.text()) as unknown as T;
+          if (cacheKey && this.cache) {
+            this.cache.set(cacheKey, data);
+          }
+          return data;
         }
 
         const text = await response.text();
@@ -168,10 +200,9 @@ export class SvgApi {
             errorData.error.code,
             errorData.error.message,
             response.status,
-            errorData.error.details,
+            errorData.error.details
           );
 
-          // Don't retry client errors (4xx) except rate limit
           if (
             response.status >= 400 &&
             response.status < 500 &&
@@ -182,7 +213,6 @@ export class SvgApi {
 
           lastError = error;
 
-          // Check if we should retry
           if (attempt < this.maxRetries && isRetryableError(error)) {
             const delay = calculateRetryDelay(attempt, this.retryDelay);
             await sleep(delay);
@@ -192,28 +222,29 @@ export class SvgApi {
           throw error;
         }
 
-        // Parse JSON response
         try {
           const data = JSON.parse(text);
-          // Unwrap the data field if present
-          return "data" in data ? data.data : data;
+          const result = "data" in data ? data.data : data;
+          
+          if (cacheKey && this.cache) {
+            this.cache.set(cacheKey, result);
+          }
+          
+          return result;
         } catch {
-          // Return raw text if not JSON
           return text as unknown as T;
         }
       } catch (error) {
         const err = error as Error;
 
-        // Don't retry validation errors
         if (err instanceof InvalidParameterError) {
           throw err;
         }
 
-        // Retry on network errors or timeouts
         if (
           (err.name === "TimeoutError" ||
             err.name === "AbortError" ||
-            err.message.includes("fetch")) &&
+            err.message?.includes("fetch")) &&
           attempt < this.maxRetries
         ) {
           const delay = calculateRetryDelay(attempt, this.retryDelay);
@@ -228,35 +259,22 @@ export class SvgApi {
     throw lastError ?? new ServerError("Request failed after retries");
   }
 
-  /**
-   * Gets an icon by name
-   *
-   * @param name - The icon name (e.g., "home", "user", "settings")
-   * @param options - Optional icon parameters
-   * @param requestOptions - Optional request overrides
-   * @returns The icon response with SVG content
-   *
-   * @example
-   * ```ts
-   * // Get default icon
-   * const icon = await api.getIcon('home');
-   *
-   * // Get custom styled icon
-   * const icon = await api.getIcon('heart', {
-   *   source: 'lucide',
-   *   size: 32,
-   *   color: '#ef4444',
-   *   stroke: 2.5,
-   * });
-   *
-   * // Get raw SVG string
-   * const svg = await api.getIcon('star', { format: 'svg' });
-   * ```
-   */
+  private async executeBatch(icons: BatchIconOptions[]): Promise<BatchResponse> {
+    const url = this.buildUrl("/icons/batch");
+    return this.request<BatchResponse>(
+      url,
+      {
+        method: "POST",
+        body: JSON.stringify({ icons }),
+      },
+      undefined
+    );
+  }
+
   async getIcon(
     name: string,
     options: GetIconOptions = {},
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<IconResponse | string> {
     const queryParams = {
       source: options.source,
@@ -267,8 +285,8 @@ export class SvgApi {
     };
 
     const url = this.buildUrl(`/icons/${name}`, queryParams);
+    const cacheKey = this.getCacheKey(`/icons/${name}`, queryParams);
 
-    // Set Accept header for SVG format
     const headers: RequestInit = {};
     if (options.format === "svg") {
       headers.headers = {
@@ -277,108 +295,59 @@ export class SvgApi {
       };
     }
 
-    return this.request<IconResponse | string>(url, headers, requestOptions);
+    return this.request<IconResponse | string>(url, headers, requestOptions, cacheKey);
   }
 
-  /**
-   * Gets an icon by source and name
-   *
-   * @param source - The icon source (e.g., "lucide", "tabler")
-   * @param name - The icon name
-   * @param options - Optional icon parameters
-   * @param requestOptions - Optional request overrides
-   * @returns The icon response with SVG content
-   *
-   * @example
-   * ```ts
-   * const icon = await api.getIconBySource('lucide', 'home');
-   * ```
-   */
   async getIconBySource(
     source: string,
     name: string,
     options: Omit<GetIconOptions, "source"> = {},
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<IconResponse | string> {
     return this.getIcon(name, { ...options, source }, requestOptions);
   }
 
-  /**
-   * Gets a batch of icons in a single request
-   *
-   * @param options - Batch request options
-   * @param requestOptions - Optional request overrides
-   * @returns Array of icon results (success or error)
-   *
-   * @example
-   * ```ts
-   * const result = await api.getBatch({
-   *   icons: [
-   *     { name: 'home' },
-   *     { name: 'user', source: 'lucide', size: 32 },
-   *     { name: 'settings', color: '#6366f1' },
-   *   ],
-   *   defaults: {
-   *     source: 'lucide',
-   *     size: 24,
-   *   },
-   * });
-   *
-   * result.data.forEach(item => {
-   *   if ('error' in item) {
-   *     console.error(`Failed to load ${item.name}:`, item.error);
-   *   } else {
-   *     console.log(`Loaded ${item.name}:`, item.svg);
-   *   }
-   * });
-   * ```
-   */
   async getBatch(
     options: BatchOptions,
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<BatchResponse> {
     const url = this.buildUrl("/icons/batch");
-
     return this.request<BatchResponse>(
       url,
       {
         method: "POST",
         body: JSON.stringify(options),
       },
-      requestOptions,
+      requestOptions
     );
   }
 
-  /**
-   * Searches for icons by query
-   *
-   * @param options - Search options
-   * @param requestOptions - Optional request overrides
-   * @returns Search results with metadata
-   *
-   * @example
-   * ```ts
-   * // Simple search
-   * const results = await api.search({ query: 'home' });
-   *
-   * // Search with filters
-   * const results = await api.search({
-   *   query: 'arrow',
-   *   source: 'lucide',
-   *   category: 'navigation',
-   *   limit: 50,
-   *   offset: 0,
-   * });
-   *
-   * console.log(`Found ${results.meta.total} icons`);
-   * results.data.forEach(result => {
-   *   console.log(`${result.name}: ${result.preview_url}`);
-   * });
-   * ```
-   */
+  async getBatchOptimized(
+    icons: BatchIconOptions[],
+    chunkSize: number = 50
+  ): Promise<BatchItemResult[]> {
+    if (icons.length === 0) return [];
+
+    // Use batcher if available
+    if (this.batcher) {
+      return this.batcher.requestMany(icons);
+    }
+
+    // Otherwise, chunk and send requests
+    const chunks = chunkArray(icons, chunkSize);
+    const results: BatchItemResult[] = [];
+
+    for (const chunk of chunks) {
+      const response = await this.getBatch({ icons: chunk });
+      results.push(...response.data);
+    }
+
+    return results;
+  }
+
   async search(
     options: SearchOptions,
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<SearchResponse> {
     const queryParams = {
       q: options.query,
@@ -389,81 +358,28 @@ export class SvgApi {
     };
 
     const url = this.buildUrl("/search", queryParams);
-
     return this.request<SearchResponse>(url, {}, requestOptions);
   }
 
-  /**
-   * Gets all available icon sources
-   *
-   * @param requestOptions - Optional request overrides
-   * @returns List of icon sources with metadata
-   *
-   * @example
-   * ```ts
-   * const sources = await api.getSources();
-   *
-   * sources.data.forEach(source => {
-   *   console.log(`${source.name}: ${source.iconCount} icons`);
-   * });
-   * ```
-   */
   async getSources(requestOptions?: RequestOptions): Promise<SourcesResponse> {
     const url = this.buildUrl("/sources");
-    return this.request<SourcesResponse>(url, {}, requestOptions);
+    const cacheKey = this.getCacheKey("/sources");
+    return this.request<SourcesResponse>(url, {}, requestOptions, cacheKey);
   }
 
-  /**
-   * Gets all available icon categories
-   *
-   * @param source - Optional source filter
-   * @param requestOptions - Optional request overrides
-   * @returns List of categories with metadata
-   *
-   * @example
-   * ```ts
-   * // Get all categories
-   * const categories = await api.getCategories();
-   *
-   * // Get categories for a specific source
-   * const lucideCategories = await api.getCategories('lucide');
-   * ```
-   */
   async getCategories(
     source?: string,
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<CategoriesResponse> {
     const queryParams = source ? { source } : undefined;
     const url = this.buildUrl("/categories", queryParams);
-    return this.request<CategoriesResponse>(url, {}, requestOptions);
+    const cacheKey = this.getCacheKey("/categories", queryParams);
+    return this.request<CategoriesResponse>(url, {}, requestOptions, cacheKey);
   }
 
-  /**
-   * Gets a random icon
-   *
-   * @param options - Optional filters and styling options
-   * @param requestOptions - Optional request overrides
-   * @returns A random icon with metadata
-   *
-   * @example
-   * ```ts
-   * // Get any random icon
-   * const icon = await api.getRandomIcon();
-   *
-   * // Get a random icon from a specific source
-   * const icon = await api.getRandomIcon({ source: 'lucide' });
-   *
-   * // Get a random icon with custom styling
-   * const icon = await api.getRandomIcon({
-   *   category: 'navigation',
-   *   size: 48,
-   *   color: '#10b981',
-   * });
-   * ```
-   */
   async getRandomIcon(
     options: GetRandomIconOptions = {},
-    requestOptions?: RequestOptions,
+    requestOptions?: RequestOptions
   ): Promise<RandomIconResponse> {
     const queryParams = {
       source: options.source,
@@ -474,25 +390,9 @@ export class SvgApi {
     };
 
     const url = this.buildUrl("/random", queryParams);
-
     return this.request<RandomIconResponse>(url, {}, requestOptions);
   }
 
-  /**
-   * Checks if an icon exists
-   *
-   * @param name - The icon name
-   * @param source - Optional source (defaults to "lucide")
-   * @returns True if the icon exists
-   *
-   * @example
-   * ```ts
-   * const exists = await api.iconExists('home');
-   * if (!exists) {
-   *   console.log('Icon not found');
-   * }
-   * ```
-   */
   async iconExists(name: string, source?: string): Promise<boolean> {
     try {
       await this.getIcon(name, { source });
@@ -504,21 +404,46 @@ export class SvgApi {
       throw error;
     }
   }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return this.cache?.getStats() ?? { hits: 0, misses: 0, size: 0, entries: 0 };
+  }
+
+  /**
+   * Clear the cache
+   */
+  clearCache(): void {
+    this.cache?.clear();
+  }
+
+  /**
+   * Flush pending batch requests
+   */
+  async flushBatch(): Promise<void> {
+    await this.batcher?.flush();
+  }
+
+  /**
+   * Get batcher statistics
+   */
+  getBatchStats() {
+    return {
+      pending: this.batcher?.getPendingCount() ?? 0,
+    };
+  }
 }
 
 /**
  * Default SDK instance with default configuration
- *
- * @example
- * ```ts
- * import { api } from '@svg-api/sdk';
- *
- * const icon = await api.getIcon('home');
- * ```
  */
 export const api = new SvgApi();
 
-// Re-export types
+// Re-export types and utilities
 export * from "./types";
 export * from "./errors";
 export * from "./utils";
+export * from "./cache";
+export * from "./batch";

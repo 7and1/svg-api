@@ -83,6 +83,7 @@ const TwitterIcon = () => (
 const navLinks = [
   { href: "/docs", label: "Docs" },
   { href: "/icons", label: "Icons" },
+  { href: "/favorites", label: "Favorites" },
   { href: "/playground", label: "Playground" },
 ];
 

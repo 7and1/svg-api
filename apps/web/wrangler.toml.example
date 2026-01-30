@@ -1,0 +1,17 @@
+name = "svg-api-web"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Main build configuration
+pages_build_output_dir = ".vercel/output/static"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+
+# Preview environment
+[env.preview]
+name = "svg-api-web-preview"
+
+[env.preview.vars]
+ENVIRONMENT = "preview"

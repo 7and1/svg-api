@@ -1,0 +1,142 @@
+name = "svg-api-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker limits
+[limits]
+cpu_ms = 50
+
+# Observability
+[observability]
+enabled = true
+
+# ============================================================================
+# Development environment (default)
+# ============================================================================
+[vars]
+ENVIRONMENT = "development"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "100"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+
+# KV namespace for icon index
+[[kv_namespaces]]
+binding = "SVG_INDEX"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+[[r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons-dev"
+
+# Analytics Engine for metrics collection
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+# D1 Database for aggregated metrics
+[[d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-dev-2025"
+database_id = "your-d1-database-id"
+
+# Durable Object for global rate limiting
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+# Durable Object migration
+[[migrations]]
+tag = "v1"
+new_classes = ["RateLimiter"]
+
+# Cron trigger for hourly aggregation
+[triggers]
+crons = ["0 * * * *"]
+
+# ============================================================================
+# Preview environment (staging)
+# ============================================================================
+[env.preview]
+name = "svg-api-worker-preview"
+
+[env.preview.vars]
+ENVIRONMENT = "preview"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "50"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+ALLOWED_ORIGINS = "*"
+
+[[env.preview.kv_namespaces]]
+binding = "SVG_INDEX"
+id = "your-preview-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+[[env.preview.r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons-preview"
+
+[[env.preview.analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+[[env.preview.d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-preview-2025"
+database_id = "your-preview-d1-database-id"
+
+[[env.preview.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[env.preview.triggers]
+crons = ["0 * * * *"]
+
+# ============================================================================
+# Production environment
+# ============================================================================
+[env.production]
+name = "svg-api-worker"
+workers_dev = false
+
+[env.production.vars]
+ENVIRONMENT = "production"
+INDEX_KEY = "index:v1"
+RATE_LIMIT_RPS = "1000"
+CACHE_TTL_ICONS = "31536000"
+CACHE_TTL_SEARCH = "300"
+
+[[env.production.kv_namespaces]]
+binding = "SVG_INDEX"
+id = "your-production-kv-namespace-id"
+
+[[env.production.r2_buckets]]
+binding = "SVG_BUCKET"
+bucket_name = "svg-api-icons"
+
+[[env.production.analytics_engine_datasets]]
+binding = "ANALYTICS"
+
+[[env.production.d1_databases]]
+binding = "METRICS_DB"
+database_name = "svg-api-metrics-prod-2025"
+database_id = "your-production-d1-database-id"
+
+[[env.production.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[env.production.triggers]
+crons = ["0 * * * *"]
+
+# Production custom domain routes (uncomment and configure for custom domain)
+# [[env.production.routes]]
+# pattern = "api.yourdomain.com/*"
+# zone_name = "yourdomain.com"
+
+# ============================================================================
+# Secrets (configure via `wrangler secret put` or GitHub Secrets)
+# - ALLOWED_ORIGINS: Comma-separated allowed origins for CORS
+# - API_KEY: Optional API key for authenticated endpoints
+# ============================================================================

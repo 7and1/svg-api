@@ -7,6 +7,9 @@
   --ink: #0b1020;
   --sand: #f7f2e9;
   --mist: #e7f6ff;
+  /* CSS custom properties for consistent spacing - reduces CLS */
+  --header-height: 64px;
+  --max-content-width: 72rem;
 }
 
 .dark {
@@ -16,8 +19,15 @@
   --mist: #1a1a2e;
 }
 
+/* Critical CSS - Above the fold optimizations */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-sand text-ink font-body antialiased;
+  /* Prevent layout shift from scrollbar */
+  overflow-y: scroll;
 }
 
 .dark body {
@@ -26,6 +36,8 @@ body {
 
 main {
   @apply min-h-screen;
+  /* Reserve space for header to prevent CLS */
+  min-height: calc(100vh - var(--header-height));
 }
 
 ::selection {
@@ -34,6 +46,109 @@ main {
 
 .dark ::selection {
   background: rgba(20, 184, 166, 0.5);
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid #14b8a6;
+  outline-offset: 2px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Content visibility for off-screen content - LCP optimization */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* Image container for CLS prevention */
+.img-container {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.img-container img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.06) 25%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Virtual scroll container optimization */
+.virtual-scroll-container {
+  contain: strict;
+  will-change: transform;
+}
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Scalar API Reference Styles */
@@ -54,4 +169,31 @@ main {
 /* Override Scalar's dark mode to match our theme */
 .scalar-api-reference {
   --scalar-theme-name: "default";
+}
+
+/* Print styles */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --ink: #000000;
+    --sand: #ffffff;
+  }
+
+  .dark {
+    --ink: #ffffff;
+    --sand: #000000;
+  }
 }

@@ -46,7 +46,9 @@ export function createErrorFromResponse(
       return new ServErr(message, details);
     default:
       // Generic error with the status from response
-      const BaseError = (require("./types") as any).SvgApiError;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const typesModule = require("./types") as { SvgApiError: new (message: string, details?: Record<string, unknown>) => SvgApiError };
+      const BaseError = typesModule.SvgApiError;
       const err = Object.create(BaseError.prototype);
       Error.call(err, message);
       err.name = "ApiError";

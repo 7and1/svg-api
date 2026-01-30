@@ -11,6 +11,7 @@ interface FilterState {
   tags: string[];
   sortBy: SortOption;
   viewMode: ViewMode;
+  selectedIcons: Set<string>;
   setQuery: (query: string) => void;
   setSources: (sources: string[]) => void;
   toggleSource: (source: string) => void;
@@ -23,6 +24,12 @@ interface FilterState {
   resetFilters: () => void;
   syncFromUrl: () => void;
   syncToUrl: () => void;
+  toggleIconSelection: (iconId: string) => void;
+  selectIcon: (iconId: string) => void;
+  deselectIcon: (iconId: string) => void;
+  selectAll: (iconIds: string[]) => void;
+  clearSelection: () => void;
+  isSelected: (iconId: string) => boolean;
 }
 
 const STORAGE_KEY = "icon-browser-filters";
@@ -37,6 +44,7 @@ export const useIconBrowserStore = create<FilterState>()(
         tags: [],
         sortBy: "popularity",
         viewMode: "grid",
+        selectedIcons: new Set<string>(),
 
         setQuery: (query) => set({ query }),
 
@@ -85,6 +93,36 @@ export const useIconBrowserStore = create<FilterState>()(
             tags: [],
             sortBy: "popularity",
           }),
+
+        toggleIconSelection: (iconId: string) => {
+          const selectedIcons = new Set(get().selectedIcons);
+          if (selectedIcons.has(iconId)) {
+            selectedIcons.delete(iconId);
+          } else {
+            selectedIcons.add(iconId);
+          }
+          set({ selectedIcons });
+        },
+
+        selectIcon: (iconId: string) => {
+          const selectedIcons = new Set(get().selectedIcons);
+          selectedIcons.add(iconId);
+          set({ selectedIcons });
+        },
+
+        deselectIcon: (iconId: string) => {
+          const selectedIcons = new Set(get().selectedIcons);
+          selectedIcons.delete(iconId);
+          set({ selectedIcons });
+        },
+
+        selectAll: (iconIds: string[]) => {
+          set({ selectedIcons: new Set(iconIds) });
+        },
+
+        clearSelection: () => set({ selectedIcons: new Set<string>() }),
+
+        isSelected: (iconId: string) => get().selectedIcons.has(iconId),
 
         syncFromUrl: () => {
           if (typeof window === "undefined") return;
@@ -145,6 +183,11 @@ export const useIconBrowserStore = create<FilterState>()(
           sortBy: state.sortBy,
           viewMode: state.viewMode,
         }),
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            state.selectedIcons = new Set<string>();
+          }
+        },
       },
     ),
   ),

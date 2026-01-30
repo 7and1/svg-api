@@ -35,12 +35,46 @@ export interface OpenAPISchema {
 }
 
 /**
+ * Zod schema check definition
+ */
+interface ZodCheck {
+  kind: string;
+  value: number;
+  regex?: RegExp;
+}
+
+/**
+ * Zod schema definition with internal properties
+ */
+interface ZodSchemaDef {
+  typeName: string;
+  checks?: ZodCheck[];
+  values?: (string | number)[];
+  value?: unknown;
+  innerType?: ZodType<unknown, ZodTypeDef, unknown>;
+  defaultValue?: () => unknown;
+  type?: ZodType<unknown, ZodTypeDef, unknown>;
+  shape?: () => Record<string, ZodType<unknown, ZodTypeDef, unknown>>;
+  valueType?: ZodType<unknown, ZodTypeDef, unknown>;
+  options?: ZodType<unknown, ZodTypeDef, unknown>[];
+  schema?: ZodType<unknown, ZodTypeDef, unknown>;
+}
+
+/**
+ * Extended Zod type with internal properties
+ */
+interface ZodExtended {
+  _def: ZodSchemaDef;
+  description?: string;
+}
+
+/**
  * Converts a Zod schema to an OpenAPI schema
  */
 export function zodToOpenAPI(
-  schema: ZodType<any, ZodTypeDef, any>,
+  schema: ZodType<unknown, ZodTypeDef, unknown>,
 ): OpenAPISchema {
-  const zod: any = schema;
+  const zod = schema as unknown as ZodExtended;
   const typeName = zod._def?.typeName;
 
   const result: OpenAPISchema = {};
@@ -135,7 +169,7 @@ export function zodToOpenAPI(
       result.required = [];
 
       for (const [key, value] of Object.entries(zod._def.shape())) {
-        const fieldSchema: any = value;
+        const fieldSchema = value as unknown as ZodExtended;
         const isOptional = fieldSchema._def?.typeName === "ZodOptional";
         const innerType = isOptional ? fieldSchema._def.innerType : fieldSchema;
 

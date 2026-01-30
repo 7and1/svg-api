@@ -18,6 +18,8 @@ node_modules
 
 # wrangler
 .wrangler
+apps/worker/wrangler.toml
+apps/web/wrangler.toml
 
 # editor
 .vscode

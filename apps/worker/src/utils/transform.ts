@@ -11,26 +11,58 @@ export interface AdvancedTransformOptions extends TransformOptions {
   customAttributes?: Record<string, string>;
 }
 
-const upsertAttribute = (tag: string, attr: string, value: string) => {
-  const regex = new RegExp(`\\s${attr}="[^"]*"`, "i");
+// Pre-compiled regex patterns for performance
+const ATTRIBUTE_REGEX_CACHE = new Map<string, RegExp>();
+const STROKE_WIDTH_KEBAB_REGEX = /stroke-width="[^"]*"/gi;
+const STROKE_WIDTH_CAMEL_REGEX = /strokeWidth="[^"]*"/gi;
+const CURRENT_COLOR_REGEX = /currentColor/g;
+const VIEWBOX_REGEX = /viewBox="([^"]*)"/i;
+const SVG_TAG_REGEX = /<svg\b[^>]*>/i;
+const TRANSFORM_REGEX = /transform="([^"]*)"/i;
+const CLASS_REGEX = /class="([^"]*)"/i;
+const VALID_ATTR_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9-_:.]*$/;
+
+/**
+ * Get or compile attribute regex (with caching)
+ */
+const getAttributeRegex = (attr: string): RegExp => {
+  let regex = ATTRIBUTE_REGEX_CACHE.get(attr);
+  if (!regex) {
+    regex = new RegExp(`\\s${attr}="[^"]*"`, "i");
+    ATTRIBUTE_REGEX_CACHE.set(attr, regex);
+  }
+  return regex;
+};
+
+/**
+ * Upsert an attribute in an SVG tag
+ */
+const upsertAttribute = (tag: string, attr: string, value: string): string => {
+  const regex = getAttributeRegex(attr);
   if (regex.test(tag)) {
     return tag.replace(regex, ` ${attr}="${value}"`);
   }
   return tag.replace(/>$/, ` ${attr}="${value}">`);
 };
 
-const removeAttribute = (tag: string, attr: string) => {
-  const regex = new RegExp(`\\s${attr}="[^"]*"`, "i");
+/**
+ * Remove an attribute from an SVG tag
+ */
+const removeAttribute = (tag: string, attr: string): string => {
+  const regex = getAttributeRegex(attr);
   return tag.replace(regex, "");
 };
 
-const replaceStrokeWidth = (svg: string, strokeWidth: number) => {
+/**
+ * Replace stroke-width attributes
+ */
+const replaceStrokeWidth = (svg: string, strokeWidth: number): string => {
   const withKebab = svg.replace(
-    /stroke-width="[^"]*"/gi,
+    STROKE_WIDTH_KEBAB_REGEX,
     `stroke-width="${strokeWidth}"`,
   );
   return withKebab.replace(
-    /strokeWidth="[^"]*"/gi,
+    STROKE_WIDTH_CAMEL_REGEX,
     `strokeWidth="${strokeWidth}"`,
   );
 };
@@ -39,7 +71,7 @@ const replaceStrokeWidth = (svg: string, strokeWidth: number) => {
  * Extract viewBox from SVG tag
  */
 const getViewBox = (svg: string): string | null => {
-  const match = svg.match(/viewBox="([^"]*)"/i);
+  const match = svg.match(VIEWBOX_REGEX);
   return match ? (match[1] ?? null) : null;
 };
 
@@ -86,19 +118,18 @@ const getMirrorTransform = (viewBox: {
  * Combine existing transform with new transform
  */
 const combineTransforms = (svg: string, newTransform: string): string => {
-  const transformRegex = /transform="([^"]*)"/i;
-  const match = svg.match(transformRegex);
+  const match = svg.match(TRANSFORM_REGEX);
 
   if (match) {
     const existingTransform = match[1];
     return svg.replace(
-      transformRegex,
+      TRANSFORM_REGEX,
       `transform="${newTransform} ${existingTransform}"`,
     );
   }
 
   // Add transform attribute to SVG tag
-  const tagMatch = svg.match(/<svg\b[^>]*>/i);
+  const tagMatch = svg.match(SVG_TAG_REGEX);
   if (tagMatch) {
     const tag = tagMatch[0];
     const newTag = tag.replace(/>$/, ` transform="${newTransform}">`);
@@ -116,23 +147,76 @@ const addCustomAttributes = (
   attributes: Record<string, string>,
 ): string => {
   let result = svg;
-  const tagMatch = result.match(/<svg\b[^>]*>/i);
+  const tagMatch = result.match(SVG_TAG_REGEX);
   if (!tagMatch) return result;
 
   let tag = tagMatch[0];
 
   for (const [key, value] of Object.entries(attributes)) {
     // Validate attribute name (security)
-    if (!/^[a-zA-Z][a-zA-Z0-9-_:.]*$/.test(key)) continue;
+    if (!VALID_ATTR_NAME_REGEX.test(key)) continue;
     tag = upsertAttribute(tag, key, value);
   }
 
   return result.replace(tagMatch[0], tag);
 };
 
-export const transformSvg = (svg: string, options: TransformOptions) => {
+// Transform cache for memoization
+interface TransformCacheKey {
+  svgHash: string;
+  options: string;
+}
+
+const transformCache = new Map<string, string>();
+const MAX_TRANSFORM_CACHE_SIZE = 1000;
+
+/**
+ * Generate cache key for transform
+ */
+const generateTransformCacheKey = (
+  svg: string,
+  options: TransformOptions | AdvancedTransformOptions
+): string => {
+  // Simple hash for SVG content
+  let hash = 0;
+  for (let i = 0; i < svg.length; i++) {
+    const char = svg.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `${hash}:${JSON.stringify(options)}`;
+};
+
+/**
+ * Clear transform cache (useful for memory management)
+ */
+export const clearTransformCache = (): void => {
+  transformCache.clear();
+};
+
+/**
+ * Get transform cache stats
+ */
+export const getTransformCacheStats = (): { size: number; maxSize: number } => {
+  return {
+    size: transformCache.size,
+    maxSize: MAX_TRANSFORM_CACHE_SIZE,
+  };
+};
+
+/**
+ * Basic SVG transformation with caching
+ */
+export const transformSvg = (svg: string, options: TransformOptions): string => {
+  // Check cache first
+  const cacheKey = generateTransformCacheKey(svg, options);
+  const cached = transformCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   let output = svg;
-  const tagMatch = output.match(/<svg\b[^>]*>/i);
+  const tagMatch = output.match(SVG_TAG_REGEX);
   if (!tagMatch) return output;
 
   let tag = tagMatch[0];
@@ -143,7 +227,7 @@ export const transformSvg = (svg: string, options: TransformOptions) => {
   }
 
   if (options.color && options.color !== "currentColor") {
-    output = output.replace(/currentColor/g, options.color);
+    output = output.replace(CURRENT_COLOR_REGEX, options.color);
   }
 
   if (options.strokeWidth) {
@@ -151,6 +235,17 @@ export const transformSvg = (svg: string, options: TransformOptions) => {
   }
 
   output = output.replace(tagMatch[0], tag);
+
+  // Cache result
+  if (transformCache.size >= MAX_TRANSFORM_CACHE_SIZE) {
+    // Evict oldest entry (simple FIFO)
+    const firstKey = transformCache.keys().next().value;
+    if (firstKey) {
+      transformCache.delete(firstKey);
+    }
+  }
+  transformCache.set(cacheKey, output);
+
   return output;
 };
 
@@ -161,8 +256,15 @@ export const transformSvgAdvanced = (
   svg: string,
   options: AdvancedTransformOptions,
 ): string => {
+  // Check cache first
+  const cacheKey = generateTransformCacheKey(svg, options);
+  const cached = transformCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   let output = svg;
-  const tagMatch = output.match(/<svg\b[^>]*>/i);
+  const tagMatch = output.match(SVG_TAG_REGEX);
   if (!tagMatch) return output;
 
   let tag = tagMatch[0];
@@ -175,7 +277,7 @@ export const transformSvgAdvanced = (
 
   // Apply color transformation
   if (options.color && options.color !== "currentColor") {
-    output = output.replace(/currentColor/g, options.color);
+    output = output.replace(CURRENT_COLOR_REGEX, options.color);
   }
 
   // Apply stroke width transformation
@@ -185,14 +287,13 @@ export const transformSvgAdvanced = (
 
   // Apply class attribute
   if (options.className) {
-    const classRegex = /class="([^"]*)"/i;
-    const existingClass = tag.match(classRegex);
+    const existingClass = tag.match(CLASS_REGEX);
     if (existingClass && existingClass[1]) {
       const classes = existingClass[1].split(/\s+/).filter(Boolean);
       if (!classes.includes(options.className)) {
         classes.push(options.className);
       }
-      tag = tag.replace(classRegex, `class="${classes.join(" ")}"`);
+      tag = tag.replace(CLASS_REGEX, `class="${classes.join(" ")}"`);
     } else {
       tag = tag.replace(/>$/, ` class="${options.className}">`);
     }
@@ -202,7 +303,7 @@ export const transformSvgAdvanced = (
   if (options.customAttributes) {
     output = addCustomAttributes(output, options.customAttributes);
     // Re-fetch tag as it may have changed
-    const newTagMatch = output.match(/<svg\b[^>]*>/i);
+    const newTagMatch = output.match(SVG_TAG_REGEX);
     if (newTagMatch) tag = newTagMatch[0];
   }
 
@@ -230,10 +331,34 @@ export const transformSvgAdvanced = (
   }
 
   // Replace the modified tag
-  const currentTagMatch = output.match(/<svg\b[^>]*>/i);
+  const currentTagMatch = output.match(SVG_TAG_REGEX);
   if (currentTagMatch) {
     output = output.replace(currentTagMatch[0], tag);
   }
 
+  // Cache result
+  if (transformCache.size >= MAX_TRANSFORM_CACHE_SIZE) {
+    const firstKey = transformCache.keys().next().value;
+    if (firstKey) {
+      transformCache.delete(firstKey);
+    }
+  }
+  transformCache.set(cacheKey, output);
+
   return output;
+};
+
+/**
+ * Generate ETag for transformed SVG content
+ * Uses fast hash for content-based ETag generation
+ */
+export const generateETag = (content: string): string => {
+  // Simple but fast hash for ETag generation
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `"${Math.abs(hash).toString(16)}"`;
 };
