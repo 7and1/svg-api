@@ -77,7 +77,7 @@ export class SvgApi {
    * Creates a new SvgApi client instance
    */
   constructor(config: EnhancedSvgApiConfig = {}) {
-    this.baseUrl = config.baseUrl ?? "https://svg-api.org";
+    this.baseUrl = config.baseUrl ?? "https://api.svg-api.org";
     this.version = config.version ?? "v1";
     this.timeout = config.timeout ?? 10000;
     this.maxRetries = config.maxRetries ?? 3;

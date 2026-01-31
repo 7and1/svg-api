@@ -34,6 +34,9 @@ interface FilterState {
 
 const STORAGE_KEY = "icon-browser-filters";
 
+// Flag to prevent URL sync during hydration/restoration
+let isRestoringFromUrl = false;
+
 export const useIconBrowserStore = create<FilterState>()(
   subscribeWithSelector(
     persist(
@@ -148,7 +151,10 @@ export const useIconBrowserStore = create<FilterState>()(
           }
 
           if (Object.keys(state).length > 0) {
+            isRestoringFromUrl = true;
             set(state as Partial<FilterState>);
+            // Reset flag after state update
+            setTimeout(() => { isRestoringFromUrl = false; }, 0);
           }
         },
 
@@ -194,25 +200,32 @@ export const useIconBrowserStore = create<FilterState>()(
 );
 
 // Subscribe to state changes to sync with URL
+// Use setTimeout to ensure this runs after hydration is complete
 if (typeof window !== "undefined") {
-  useIconBrowserStore.subscribe(
-    (state) => ({
-      query: state.query,
-      sources: state.sources,
-      categories: state.categories,
-      tags: state.tags,
-      sortBy: state.sortBy,
-    }),
-    () => {
-      useIconBrowserStore.getState().syncToUrl();
-    },
-    {
-      equalityFn: (a, b) =>
-        a.query === b.query &&
-        a.sources.join(",") === b.sources.join(",") &&
-        a.categories.join(",") === b.categories.join(",") &&
-        a.tags.join(",") === b.tags.join(",") &&
-        a.sortBy === b.sortBy,
-    },
-  );
+  // Delay subscription until after initial render to prevent hydration issues
+  setTimeout(() => {
+    useIconBrowserStore.subscribe(
+      (state) => ({
+        query: state.query,
+        sources: state.sources,
+        categories: state.categories,
+        tags: state.tags,
+        sortBy: state.sortBy,
+      }),
+      () => {
+        // Skip URL sync while restoring from URL to prevent loops
+        if (!isRestoringFromUrl) {
+          useIconBrowserStore.getState().syncToUrl();
+        }
+      },
+      {
+        equalityFn: (a, b) =>
+          a.query === b.query &&
+          a.sources.join(",") === b.sources.join(",") &&
+          a.categories.join(",") === b.categories.join(",") &&
+          a.tags.join(",") === b.tags.join(",") &&
+          a.sortBy === b.sortBy,
+      },
+    );
+  }, 0);
 }

@@ -81,15 +81,17 @@ async function cacheFirstStrategy(request, cacheName) {
     fetch(request)
       .then((response) => {
         if (response.ok) {
+          // Clone before caching to avoid body lock
           cache.put(request, response.clone());
         }
       })
       .catch(() => {});
-    return cached;
+    return cached.clone();
   }
 
   const response = await fetch(request);
   if (response.ok) {
+    // Clone before caching to avoid body lock
     cache.put(request, response.clone());
   }
   return response;
@@ -103,6 +105,7 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
   const fetchPromise = fetch(request)
     .then((response) => {
       if (response.ok) {
+        // Clone before caching to avoid body lock
         cache.put(request, response.clone());
       }
       return response;
@@ -110,13 +113,13 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
     .catch(() => {
       // Return cached response if network fails
       if (cached) {
-        return cached;
+        return cached.clone();
       }
       throw new Error("Network error and no cache available");
     });
 
-  // Return cached immediately, or wait for network if no cache
-  return cached || fetchPromise;
+  // Return cached immediately (cloned), or wait for network if no cache
+  return cached ? cached.clone() : fetchPromise;
 }
 
 // Strategy: Cache-first with 30-day expiration for icons
@@ -133,27 +136,32 @@ async function iconCacheStrategy(request) {
       fetch(request)
         .then((response) => {
           if (response.ok) {
-            const headers = new Headers(response.headers);
-            headers.set("sw-cached-date", new Date().toISOString());
-            const responseWithDate = new Response(response.body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers,
+            // Clone the response to read body
+            return response.clone().arrayBuffer().then((buffer) => {
+              const headers = new Headers(response.headers);
+              headers.set("sw-cached-date", new Date().toISOString());
+              const responseWithDate = new Response(buffer, {
+                status: response.status,
+                statusText: response.statusText,
+                headers,
+              });
+              cache.put(request, responseWithDate);
             });
-            cache.put(request, responseWithDate);
           }
         })
         .catch(() => {});
-      return cached;
+      return cached.clone();
     }
   }
 
   try {
     const response = await fetch(request);
     if (response.ok) {
+      // Clone the response to read body
+      const buffer = await response.clone().arrayBuffer();
       const headers = new Headers(response.headers);
       headers.set("sw-cached-date", new Date().toISOString());
-      const responseWithDate = new Response(response.body, {
+      const responseWithDate = new Response(buffer, {
         status: response.status,
         statusText: response.statusText,
         headers,
@@ -163,7 +171,7 @@ async function iconCacheStrategy(request) {
     return response;
   } catch (error) {
     if (cached) {
-      return cached;
+      return cached.clone();
     }
     throw error;
   }

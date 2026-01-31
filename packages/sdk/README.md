@@ -33,7 +33,7 @@ console.log(icon.svg);
 
 ```typescript
 const api = new SvgApi({
-  baseUrl: "https://svg-api.org", // API base URL
+  baseUrl: "https://api.svg-api.org", // API base URL
   version: "v1", // API version
   timeout: 10000, // Request timeout (ms)
   maxRetries: 3, // Maximum retry attempts

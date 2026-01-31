@@ -43,6 +43,16 @@ binding = "METRICS_DB"
 database_name = "svg-api-metrics-dev-2025"
 database_id = "05012005-4a4c-4fc8-8941-92796e6e1534"
 
+# Durable Object for global rate limiting
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+# Durable Object migration
+[[migrations]]
+tag = "v1"
+new_classes = ["RateLimiter"]
+
 # Cron trigger for hourly aggregation
 [triggers]
 crons = ["0 * * * *"]  # Run every hour at minute 0
@@ -80,6 +90,11 @@ binding = "METRICS_DB"
 database_name = "svg-api-metrics-preview-2025"
 database_id = "e86ec51c-3cb0-4836-b8bf-09682ef5d62a"
 
+# Preview Durable Object
+[[env.preview.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
 # Preview cron trigger
 [env.preview.triggers]
 crons = ["0 * * * *"]
@@ -116,6 +131,11 @@ binding = "ANALYTICS"
 binding = "METRICS_DB"
 database_name = "svg-api-metrics-prod-2025"
 database_id = "f1f78cd6-81c6-4fff-b0aa-828adb1f36e0"
+
+# Production Durable Object
+[[env.production.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
 
 # Production cron trigger
 [env.production.triggers]

@@ -188,13 +188,6 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://api.svg-api.org" />
         <link rel="preconnect" href="https://svg-api.org" />
         <link rel="dns-prefetch" href="https://svg-api.org" />
-        {/* Preload critical assets for LCP optimization */}
-        <link
-          rel="preload"
-          href="/icon-192x192.png"
-          as="image"
-          type="image/png"
-        />
         {/* PWA support */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

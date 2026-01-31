@@ -1,6 +1,5 @@
 import { SvgApi } from "@svg-api/sdk";
 import chalk from "chalk";
-import type { SearchOptions } from "@svg-api/sdk";
 
 interface SearchCommandOptions {
   source?: string;
@@ -9,14 +8,23 @@ interface SearchCommandOptions {
   json?: boolean;
 }
 
+// Local type matching SDK's SearchOptions
+interface LocalSearchOptions {
+  query: string;
+  source?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export async function searchCommand(
   query: string,
   options: SearchCommandOptions
 ): Promise<void> {
   const api = new SvgApi();
-  
+
   try {
-    const searchOptions: SearchOptions = {
+    const searchOptions: LocalSearchOptions = {
       query,
       source: options.source,
       category: options.category,

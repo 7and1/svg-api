@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
   useDeferredValue,
+  useRef,
 } from "react";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,7 +21,6 @@ import { useKeyboardShortcut } from "./useKeyboardShortcut";
 import { fetchIcons, fetchSources, fetchCategories } from "./api";
 import { IconResult, SourceInfo, CategoryInfo } from "./types";
 import { API_BASE } from "../../lib/constants";
-import { useRef } from "react";
 import clsx from "clsx";
 
 export const IconBrowser = () => {
@@ -59,10 +59,11 @@ export const IconBrowser = () => {
   // Use deferred value for non-urgent updates (INP optimization)
   const deferredQuery = useDeferredValue(query);
 
-  // Sync from URL on mount
+  // Sync from URL on mount - run once only
   useEffect(() => {
     syncFromUrl();
-  }, [syncFromUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load sources and categories
   useEffect(() => {
@@ -147,10 +148,32 @@ export const IconBrowser = () => {
     setShowSearchHistory(false);
   };
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     setError(null);
-    setQuery(query); // Trigger re-fetch
-  };
+    // Force refresh by triggering a new search with current params
+    setLoading(true);
+    const controller = new AbortController();
+    fetchIcons(
+      deferredQuery,
+      selectedSources,
+      selectedCategories,
+      selectedTags,
+      sortBy,
+      controller.signal
+    )
+      .then((data) => {
+        setResults(data);
+        const tags = new Set<string>();
+        data.forEach((item) => item.tags?.forEach((tag) => tags.add(tag)));
+        setAvailableTags(Array.from(tags).sort());
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setError(err);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [deferredQuery, selectedSources, selectedCategories, selectedTags, sortBy]);
 
   const handleClearFilters = () => {
     setQuery("");

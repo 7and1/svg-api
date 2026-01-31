@@ -56,8 +56,10 @@ export async function fetchWithTimeout(
   url: string,
   options: RequestInit & { timeout?: number },
   fetchImpl: typeof fetch = defaultFetch,
+  timeoutMs?: number,
 ): Promise<Response> {
-  const { timeout = 10000, ...fetchOptions } = options;
+  const { timeout: optTimeout, ...fetchOptions } = options;
+  const timeout = timeoutMs ?? optTimeout ?? 10000;
 
   if (timeout === 0) {
     return fetchImpl(url, fetchOptions);

@@ -149,7 +149,7 @@ export async function scanCommand(
         try {
           const results = await api.search({ query: name, limit: 3 });
           if (results.data.length > 0) {
-            console.log(chalk.yellow(name) + " -> " + results.data.map((r) => r.name).join(", "));
+            console.log(chalk.yellow(name) + " -> " + results.data.map((r: {name: string}) => r.name).join(", "));
           }
         } catch {
           // Ignore search errors

@@ -21,6 +21,11 @@ export interface PendingRequest {
   addedAt: number;
 }
 
+export interface WaitingRequest {
+  resolve: (value: BatchItemResult) => void;
+  reject: (reason: Error) => void;
+}
+
 export type BatchExecutor = (options: BatchIconOptions[]) => Promise<BatchResponse>;
 
 /**
@@ -29,6 +34,7 @@ export type BatchExecutor = (options: BatchIconOptions[]) => Promise<BatchRespon
 export class IconBatcher {
   private config: Required<BatcherConfig>;
   private pending: Map<string, PendingRequest>;
+  private waiting: Map<string, WaitingRequest[]>;  // For deduplicated requests
   private timeoutId: ReturnType<typeof setTimeout> | null;
   private executor: BatchExecutor;
   private isProcessing: boolean;
@@ -42,6 +48,7 @@ export class IconBatcher {
       autoBatch: config.autoBatch ?? true,
     };
     this.pending = new Map();
+    this.waiting = new Map();
     this.timeoutId = null;
     this.isProcessing = false;
   }
@@ -73,12 +80,11 @@ export class IconBatcher {
 
     // Check for duplicate pending request
     if (this.config.deduplicate && this.pending.has(key)) {
-      const existing = this.pending.get(key)!;
-      return new Promise((resolve, reject) => {
-        existing.resolve.then(
-          (result) => resolve(result),
-          (err) => reject(err)
-        );
+      // Add to waiting list for this key
+      return new Promise<BatchItemResult>((resolve, reject) => {
+        const waiters = this.waiting.get(key) ?? [];
+        waiters.push({ resolve, reject });
+        this.waiting.set(key, waiters);
       });
     }
 
@@ -127,11 +133,19 @@ export class IconBatcher {
       clearTimeout(this.timeoutId);
       this.timeoutId = null;
     }
-    
+
     for (const [, request] of this.pending) {
       request.reject(new Error("Batch request cancelled"));
     }
     this.pending.clear();
+
+    // Reject all waiting requests
+    for (const [, waiters] of this.waiting) {
+      for (const waiter of waiters) {
+        waiter.reject(new Error("Batch request cancelled"));
+      }
+    }
+    this.waiting.clear();
   }
 
   /**
@@ -139,7 +153,7 @@ export class IconBatcher {
    */
   private scheduleBatch(): void {
     if (this.isProcessing) return;
-    
+
     if (this.pending.size >= this.config.maxBatchSize) {
       // Flush immediately if batch is full
       this.flush();
@@ -157,19 +171,21 @@ export class IconBatcher {
    */
   private async processBatch(): Promise<void> {
     if (this.isProcessing || this.pending.size === 0) return;
-    
+
     this.isProcessing = true;
-    
+
     // Collect pending requests
     const batch: PendingRequest[] = [];
-    for (const [, request] of this.pending) {
+    const batchKeys: string[] = [];
+    for (const [key, request] of this.pending) {
       batch.push(request);
+      batchKeys.push(key);
       if (batch.length >= this.config.maxBatchSize) break;
     }
 
     // Remove from pending
-    for (const request of batch) {
-      this.pending.delete(this.generateKey(request.options));
+    for (const key of batchKeys) {
+      this.pending.delete(key);
     }
 
     try {
@@ -178,22 +194,49 @@ export class IconBatcher {
 
       // Resolve each request with its result
       for (let i = 0; i < batch.length; i++) {
+        const key = batchKeys[i];
         const result = response.data[i];
         if (result) {
           batch[i].resolve(result);
+          // Also resolve any waiting requests for this key
+          const waiters = this.waiting.get(key);
+          if (waiters) {
+            for (const waiter of waiters) {
+              waiter.resolve(result);
+            }
+            this.waiting.delete(key);
+          }
         } else {
-          batch[i].reject(new Error("No result returned for request"));
+          const error = new Error("No result returned for request");
+          batch[i].reject(error);
+          // Also reject any waiting requests
+          const waiters = this.waiting.get(key);
+          if (waiters) {
+            for (const waiter of waiters) {
+              waiter.reject(error);
+            }
+            this.waiting.delete(key);
+          }
         }
       }
     } catch (error) {
       // Reject all requests on batch failure
       const err = error instanceof Error ? error : new Error(String(error));
-      for (const request of batch) {
-        request.reject(err);
+      for (let i = 0; i < batch.length; i++) {
+        const key = batchKeys[i];
+        batch[i].reject(err);
+        // Also reject any waiting requests
+        const waiters = this.waiting.get(key);
+        if (waiters) {
+          for (const waiter of waiters) {
+            waiter.reject(err);
+          }
+          this.waiting.delete(key);
+        }
       }
     } finally {
       this.isProcessing = false;
-      
+
       // Process remaining pending requests
       if (this.pending.size > 0) {
         this.scheduleBatch();
