@@ -33,14 +33,7 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Cloudflare Workers
-        run: |
-          pnpm --filter @svg-api/worker exec wrangler deploy \
-            --env production \
-            --var CLOUDFLARE_ACCOUNT_ID:${{ secrets.CLOUDFLARE_ACCOUNT_ID }} \
-            --var CLOUDFLARE_API_TOKEN:${{ secrets.CLOUDFLARE_API_TOKEN }} \
-            --secret SENTRY_DSN:${{ secrets.SENTRY_DSN }} \
-            --kv-namespace-binding SVG_INDEX:${{ secrets.KV_NAMESPACE_ID_PROD }} \
-            --d1-database-binding METRICS_DB:${{ secrets.D1_DATABASE_ID_PROD }}
+        run: pnpm --filter @svg-api/worker exec wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

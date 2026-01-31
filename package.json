@@ -23,6 +23,8 @@
   "devDependencies": {
     "@fortawesome/fontawesome-free": "7.1.0",
     "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "8.54.0",
+    "@typescript-eslint/parser": "8.54.0",
     "eslint": "^9.19.0",
     "prettier": "^3.4.2",
     "sharp": "0.34.5",
