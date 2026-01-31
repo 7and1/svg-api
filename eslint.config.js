@@ -1,4 +1,6 @@
 import tsParser from "@typescript-eslint/parser";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
   {
@@ -10,6 +12,14 @@ export default [
       parser: tsParser,
       ecmaVersion: "latest",
       sourceType: "module",
+    },
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+    },
+    rules: {
+      "react/no-danger": "off",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
   {
