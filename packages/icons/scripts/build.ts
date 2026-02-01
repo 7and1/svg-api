@@ -35,6 +35,7 @@ interface SourceDefinition {
 }
 
 const sources: SourceDefinition[] = [
+  // Original 7 sources
   {
     id: "lucide",
     pattern: "lucide/*.svg",
@@ -87,6 +88,251 @@ const sources: SourceDefinition[] = [
     id: "mdi",
     pattern: "mdi/*.svg",
     baseDir: "mdi",
+  },
+  // New sources (Batch 1 - Major libraries)
+  {
+    id: "fontawesome",
+    pattern: "fontawesome/*.svg",
+    baseDir: "fontawesome",
+  },
+  {
+    id: "fluent",
+    pattern: "fluent/*.svg",
+    baseDir: "fluent",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      // ic_fluent_<name>_<size>_<style>.svg
+      const match = base.match(/_\d+_(filled|regular|light)$/);
+      return match?.[1] ?? "regular";
+    },
+  },
+  {
+    id: "phosphor",
+    pattern: "phosphor/*.svg",
+    baseDir: "phosphor",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      // Format: name-weight.svg (e.g., acorn-bold.svg, acorn-light.svg)
+      const match = base.match(/-(bold|duotone|fill|light|regular|thin)$/);
+      return match?.[1] ?? "regular";
+    },
+  },
+  {
+    id: "simple",
+    pattern: "simple/*.svg",
+    baseDir: "simple",
+  },
+  {
+    id: "octicons",
+    pattern: "octicons/*.svg",
+    baseDir: "octicons",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      const match = base.match(/-(\d+)$/);
+      return match ? `${match[1]}px` : "default";
+    },
+  },
+  // New sources (Batch 2 - Additional libraries)
+  {
+    id: "radix",
+    pattern: "radix/*.svg",
+    baseDir: "radix",
+  },
+  {
+    id: "antd",
+    pattern: "antd/{filled,outlined,twotone}/*.svg",
+    baseDir: "antd",
+    appendVariant: true,
+    variantFromPath: (relative) => relative.split(path.sep)[0] ?? null,
+  },
+  {
+    id: "carbon",
+    pattern: "carbon/*.svg",
+    baseDir: "carbon",
+  },
+  {
+    id: "flags",
+    pattern: "flags/*.svg",
+    baseDir: "flags",
+  },
+  {
+    id: "weather",
+    pattern: "weather/*.svg",
+    baseDir: "weather",
+  },
+  {
+    id: "iconoir",
+    pattern: "iconoir/*.svg",
+    baseDir: "iconoir",
+  },
+  {
+    id: "eva",
+    pattern: "eva/*.svg",
+    baseDir: "eva",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      if (base.endsWith("-outline")) return "outline";
+      return "fill";
+    },
+  },
+  {
+    id: "circum",
+    pattern: "circum/*.svg",
+    baseDir: "circum",
+  },
+  {
+    id: "cssgg",
+    pattern: "cssgg/*.svg",
+    baseDir: "cssgg",
+  },
+  {
+    id: "zondicons",
+    pattern: "zondicons/*.svg",
+    baseDir: "zondicons",
+  },
+  // New sources (Batch 3 - Extended libraries)
+  {
+    id: "feather",
+    pattern: "feather/*.svg",
+    baseDir: "feather",
+  },
+  {
+    id: "akar",
+    pattern: "akar/*.svg",
+    baseDir: "akar",
+  },
+  {
+    id: "lineawesome",
+    pattern: "lineawesome/*.svg",
+    baseDir: "lineawesome",
+  },
+  {
+    id: "cryptocurrency",
+    pattern: "cryptocurrency/*.svg",
+    baseDir: "cryptocurrency",
+  },
+  {
+    id: "teenyicons",
+    pattern: "teenyicons/{outline,solid}/*.svg",
+    baseDir: "teenyicons",
+    appendVariant: true,
+    variantFromPath: (relative) => relative.split(path.sep)[0] ?? null,
+  },
+  {
+    id: "game-icons",
+    pattern: "game-icons/*.svg",
+    baseDir: "game-icons",
+  },
+  {
+    id: "unicons",
+    pattern: "unicons/*.svg",
+    baseDir: "unicons",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      // Format: uil-name.svg (line), uis-name.svg (solid), uit-name.svg (thinline)
+      if (base.startsWith("uil-")) return "line";
+      if (base.startsWith("uis-")) return "solid";
+      if (base.startsWith("uit-")) return "thinline";
+      return "line";
+    },
+  },
+  {
+    id: "jam",
+    pattern: "jam/*.svg",
+    baseDir: "jam",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      if (base.endsWith("-f")) return "filled";
+      return "outline";
+    },
+  },
+  {
+    id: "boxicons",
+    pattern: "boxicons/*.svg",
+    baseDir: "boxicons",
+    variantFromPath: (relative) => {
+      const base = path.basename(relative, ".svg");
+      // Format: bx-name.svg (regular), bxs-name.svg (solid), bxl-name.svg (logos)
+      if (base.startsWith("bxs-")) return "solid";
+      if (base.startsWith("bxl-")) return "logos";
+      return "regular";
+    },
+  },
+  {
+    id: "devicons",
+    pattern: "devicons/*.svg",
+    baseDir: "devicons",
+  },
+  // New sources (Batch 4 - High-value libraries)
+  {
+    id: "material-symbols",
+    pattern: "material-symbols/**/materialicons/24px.svg",
+    baseDir: "material-symbols",
+    categoryFromPath: (relative) => relative.split(path.sep)[0] ?? "general",
+  },
+  {
+    id: "majesticons",
+    pattern: "majesticons/{line,solid}/*.svg",
+    baseDir: "majesticons",
+    appendVariant: true,
+    variantFromPath: (relative) => relative.split(path.sep)[0] ?? null,
+  },
+  {
+    id: "coreui",
+    pattern: "coreui/{brand,flag,free}/*.svg",
+    baseDir: "coreui",
+    categoryFromPath: (relative) => relative.split(path.sep)[0] ?? "general",
+  },
+  {
+    id: "typicons",
+    pattern: "typicons/*.svg",
+    baseDir: "typicons",
+  },
+  {
+    id: "entypo",
+    pattern: "entypo/*.svg",
+    baseDir: "entypo",
+  },
+  {
+    id: "foundation",
+    pattern: "foundation/*.svg",
+    baseDir: "foundation",
+  },
+  {
+    id: "ikonate",
+    pattern: "ikonate/*.svg",
+    baseDir: "ikonate",
+  },
+  {
+    id: "bytesize",
+    pattern: "bytesize/*.svg",
+    baseDir: "bytesize",
+  },
+  // Specialized libraries (Batch 5 - Professional domains)
+  {
+    id: "healthicons",
+    pattern: "healthicons/public/icons/svg/{outline,filled}/**/*.svg",
+    baseDir: "healthicons/public/icons/svg",
+    appendVariant: true,
+    variantFromPath: (relative) => relative.split(path.sep)[0] ?? null,
+    categoryFromPath: (relative) => relative.split(path.sep)[1] ?? "general",
+  },
+  {
+    id: "file-icons",
+    pattern: "file-icons/{classic,vivid,high-contrast}/*.svg",
+    baseDir: "file-icons",
+    appendVariant: true,
+    variantFromPath: (relative) => relative.split(path.sep)[0] ?? null,
+  },
+  {
+    id: "primeicons",
+    pattern: "primeicons/*.svg",
+    baseDir: "primeicons",
+  },
+  {
+    id: "academicons",
+    pattern: "academicons/*.svg",
+    baseDir: "academicons",
   },
 ];
 

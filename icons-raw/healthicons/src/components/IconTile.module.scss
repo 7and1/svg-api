@@ -1,0 +1,76 @@
+.hidden {
+  display: none;
+}
+
+.iconGroup {
+  text-align: center;
+  margin: 1rem 1rem 0 0;
+  width: 120px;
+}
+
+.iconItem {
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.iconThumb {
+  width: 96px;
+  height: 96px;
+  padding: 16px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0);
+  border-radius: 5px;
+  opacity: 0.8;
+  transition: border-color ease-in-out 0.2s, opacity ease-in-out 0.2s;
+  position: relative;
+
+  img {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+.iconSize {
+  color: coral;
+}
+
+.iconItem:hover {
+  cursor: pointer;
+
+  .iconThumb {
+    border-color: var(--link-decoration-color);
+    opacity: 1;
+  }
+
+  .iconTitle {
+    color: var(--link-color);
+    transition: color ease-in-out 0.4s;
+  }
+}
+
+.iconTitle {
+  font-size: 0.8rem;
+  line-height: 1.1rem;
+  color: rgba(134, 134, 155, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  height: 5rem;
+  padding: 8px 12px 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+@media (min-width: 60rem) {
+  .iconThumb {
+    width: 84px;
+    height: 84px;
+
+    img {
+      width: 48px;
+      height: 48px;
+    }
+  }
+}
